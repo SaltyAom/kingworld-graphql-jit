@@ -55,7 +55,7 @@ export const graphql = (
          */
         playground?: boolean
     } = {
-        path: 'graphql',
+        path: '/graphql',
         schema: '',
         resolvers: {},
         playground: true

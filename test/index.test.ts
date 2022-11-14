@@ -18,17 +18,32 @@ const app = new KingWorld()
                 hello: String
             }`
     })
+    .use(graphql, {
+        path: '/v2/graphql',
+        playground: true,
+        resolvers: {
+            Query: {
+                hello: () => 'Hello world!'
+            }
+        },
+        schema: `
+            type Query {
+                hello: String
+            }`
+    })
 
 describe('GraphQL Yoga', () => {
-    // it('handle GraphQL playground ', async () => {
-    //     const res = await app.handle(req('/graphql?query=%7B%0A++hi%0A%7D'))
-    //     const text = await res.text()
+    it('handle GraphQL playground ', async () => {
+        const res = await app.handle(new Request('/graphql'))
 
-    //     expect(text).toBe(JSON.stringify({ data: { hi: 'Hi from KingWorld' } }))
-    //     expect(res.headers.get('Content-Type')).toBe(
-    //         'application/graphql-response+json; charset=utf-8'
-    //     )
-    // })
+        expect(res.headers.get('Content-Type')).toBe('text/html')
+    })
+
+    it('handle custom path ', async () => {
+        const res = await app.handle(new Request('/v2/graphql'))
+
+        expect(res.headers.get('Content-Type')).toBe('text/html')
+    })
 
     it('handle GraphQL query', async () => {
         const body = JSON.stringify({ query: '{\n  hello\n}' })
