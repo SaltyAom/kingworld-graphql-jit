@@ -24,14 +24,27 @@ const tsh = (s: string) => {
     return h ^ (h >>> 9)
 }
 
-export const graphql = (
+type Resolver<Context extends Record<string, any> = {}> = Record<
+    string,
+    <Variables extends Record<string, unknown> = Record<string, unknown>>(
+        context: Context,
+        variables: Variables
+    ) => any
+>
+
+export const graphql = <Context extends Record<string, any> = {}>(
     app: KingWorld,
     {
         path = '/graphql',
         schema,
         resolvers,
-        playground = true
+        playground = true,
+        context: gqlContext
     }: {
+        /**
+         * GraphQL Context
+         */
+        context?: Context
         /**
          * @default /graphql
          *
@@ -46,10 +59,10 @@ export const graphql = (
          * Resolvers funciton
          */
         resolvers: {
-            Query?: Record<string, Function | Promise<Function>>
-            Mutation?: Record<string, Function | Promise<Function>>
-            Subscription?: Record<string, Function | Promise<Function>>
-        }
+            Query?: Resolver<Context>
+            Mutation?: Resolver<Context>
+            Subscription?: Resolver<Context>
+        } & Record<string, Resolver<Context>>
         /**
          * Playground
          */
@@ -82,8 +95,8 @@ export const graphql = (
             if (!context.body?.query) return
 
             const hash = tsh(context.body.query)
-            if (cache.get(hash))
-                return cache.get(hash)!({}, {}, context.body.variables)
+            const _cache = cache.get(hash)
+            if (_cache) return _cache!(gqlContext, {}, context.body.variables)
 
             const compiled = compileQuery(
                 gqlSchema,
@@ -93,7 +106,7 @@ export const graphql = (
             if (isCompiledQuery(compiled)) {
                 cache.set(hash, compiled.query)
 
-                return compiled.query({}, {}, context.body.variables)
+                return compiled.query(gqlContext, {}, context.body.variables)
             }
 
             return compiled

@@ -33,7 +33,7 @@ import {
 import { getFieldDef } from "graphql/execution/execute";
 import { Kind, type SelectionNode, type TypeNode } from "graphql/language";
 import { isAbstractType } from "graphql/type";
-import { type CompilationContext, GLOBAL_VARIABLES_NAME } from "./execution";
+import { type CompilationContext, GQL__VARIABLES_NAME } from "./execution";
 import createInspect from "./inspect";
 import { type Maybe } from "./types";
 
@@ -422,7 +422,7 @@ function compileSkipIncludeDirective(
   switch (ifNode.value.kind) {
     case Kind.VARIABLE:
       validateSkipIncludeVariableType(compilationContext, ifNode.value);
-      return `${GLOBAL_VARIABLES_NAME}["${ifNode.value.name.value}"]`;
+      return `${GQL__VARIABLES_NAME}["${ifNode.value.name.value}"]`;
     case Kind.BOOLEAN:
       return `${ifNode.value.value.toString()}`;
     default:

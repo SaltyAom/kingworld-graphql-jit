@@ -148,19 +148,19 @@ export interface CompilationContext extends GraphQLContext {
 
 // prefix for the variable used ot cache validation results
 const SAFETY_CHECK_PREFIX = "__validNode";
-const GLOBAL_DATA_NAME = "__context.data";
-const GLOBAL_ERRORS_NAME = "__context.errors";
-const GLOBAL_NULL_ERRORS_NAME = "__context.nullErrors";
-const GLOBAL_ROOT_NAME = "__context.rootValue";
-export const GLOBAL_VARIABLES_NAME = "__context.variables";
-const GLOBAL_CONTEXT_NAME = "__context.context";
-const GLOBAL_EXECUTION_CONTEXT = "__context";
-const GLOBAL_PROMISE_COUNTER = "__context.promiseCounter";
-const GLOBAL_INSPECT_NAME = "__context.inspect";
-const GLOBAL_SAFE_MAP_NAME = "__context.safeMap";
+const GQL__DATA_NAME = "__context.data";
+const GQL__ERRORS_NAME = "__context.errors";
+const GQL__NULL_ERRORS_NAME = "__context.nullErrors";
+const GQL__ROOT_NAME = "__context.rootValue";
+export const GQL__VARIABLES_NAME = "__context.variables";
+const GQL__CONTEXT_NAME = "__context.context";
+const GQL__EXECUTION_CONTEXT = "__context";
+const GQL__PROMISE_COUNTER = "__context.promiseCounter";
+const GQL__INSPECT_NAME = "__context.inspect";
+const GQL__SAFE_MAP_NAME = "__context.safeMap";
 const GRAPHQL_ERROR = "__context.GraphQLError";
-const GLOBAL_RESOLVE = "__context.resolve";
-const GLOBAL_PARENT_NAME = "__parent";
+const GQL__RESOLVE = "__context.resolve";
+const GQL__PARENT_NAME = "__parent";
 const LOCAL_JS_FIELD_NAME_PREFIX = "__field";
 
 export interface CompiledQuery<
@@ -414,26 +414,26 @@ function compileOperation(
     context,
     type,
     [],
-    [GLOBAL_ROOT_NAME],
-    [GLOBAL_DATA_NAME],
+    [GQL__ROOT_NAME],
+    [GQL__DATA_NAME],
     undefined,
-    GLOBAL_ERRORS_NAME,
+    GQL__ERRORS_NAME,
     fieldMap,
     true
   );
-  let body = `function query (${GLOBAL_EXECUTION_CONTEXT}) {
+  let body = `function query (${GQL__EXECUTION_CONTEXT}) {
   "use strict";
 `;
   if (serialExecution) {
-    body += `${GLOBAL_EXECUTION_CONTEXT}.queue = [];`;
+    body += `${GQL__EXECUTION_CONTEXT}.queue = [];`;
   }
   body += generateUniqueDeclarations(context, true);
-  body += `${GLOBAL_DATA_NAME} = ${topLevel}\n`;
+  body += `${GQL__DATA_NAME} = ${topLevel}\n`;
   if (serialExecution) {
     body += compileDeferredFieldsSerially(context);
     body += `
-    ${GLOBAL_EXECUTION_CONTEXT}.finalResolve = () => {};
-    ${GLOBAL_RESOLVE} = (context) => {
+    ${GQL__EXECUTION_CONTEXT}.finalResolve = () => {};
+    ${GQL__RESOLVE} = (context) => {
       if (context.jobCounter >= context.queue.length) {
         // All mutations have finished
         context.finalResolve(context);
@@ -442,14 +442,14 @@ function compileOperation(
       context.queue[context.jobCounter++](context);
     };
     // There might not be a job to run due to invalid queries
-    if (${GLOBAL_EXECUTION_CONTEXT}.queue.length > 0) {
-      ${GLOBAL_EXECUTION_CONTEXT}.jobCounter = 1; // since the first one will be run manually
-      ${GLOBAL_EXECUTION_CONTEXT}.queue[0](${GLOBAL_EXECUTION_CONTEXT});
+    if (${GQL__EXECUTION_CONTEXT}.queue.length > 0) {
+      ${GQL__EXECUTION_CONTEXT}.jobCounter = 1; // since the first one will be run manually
+      ${GQL__EXECUTION_CONTEXT}.queue[0](${GQL__EXECUTION_CONTEXT});
     }
     // Promises have been scheduled so a new promise is returned
     // that will be resolved once every promise is done
-    if (${GLOBAL_PROMISE_COUNTER} > 0) {
-      return new Promise(resolve => ${GLOBAL_EXECUTION_CONTEXT}.finalResolve = resolve);
+    if (${GQL__PROMISE_COUNTER} > 0) {
+      return new Promise(resolve => ${GQL__EXECUTION_CONTEXT}.finalResolve = resolve);
     }
   `;
   } else {
@@ -457,8 +457,8 @@ function compileOperation(
     body += `
     // Promises have been scheduled so a new promise is returned
     // that will be resolved once every promise is done
-    if (${GLOBAL_PROMISE_COUNTER} > 0) {
-      return new Promise(resolve => ${GLOBAL_RESOLVE} = resolve);
+    if (${GQL__PROMISE_COUNTER} > 0) {
+      return new Promise(resolve => ${GQL__RESOLVE} = resolve);
     }`;
   }
   body += `
@@ -513,7 +513,7 @@ function compileDeferredField(
     fieldType,
     fieldNodes,
     [jsFieldName],
-    [`${GLOBAL_PARENT_NAME}.${name}`],
+    [`${GQL__PARENT_NAME}.${name}`],
     responsePath
   );
   const parentIndexes = getParentArgIndexes(context);
@@ -541,8 +541,8 @@ function compileDeferredField(
   );
   const emptyError = createErrorObject(context, fieldNodes, responsePath, '""');
   const resolverParentPath = originPaths.join(".");
-  const resolverCall = `${GLOBAL_EXECUTION_CONTEXT}.resolvers.${resolverName}(
-          ${resolverParentPath},${topLevelArgs},${GLOBAL_CONTEXT_NAME}, ${executionInfo})`;
+  const resolverCall = `${GQL__EXECUTION_CONTEXT}.resolvers.${resolverName}(
+          ${resolverParentPath},${topLevelArgs},${GQL__CONTEXT_NAME}, ${executionInfo})`;
   const resultParentPath = destinationPaths.join(".");
   const compiledArgs = compileArguments(
     subContext,
@@ -564,7 +564,7 @@ function compileDeferredField(
       if (${isPromiseInliner("__value")}) {
       ${promiseStarted()}
        __value.then(result => {
-        ${resolverHandler}(${GLOBAL_EXECUTION_CONTEXT}, ${resultParentPath}, result, ${parentIndexes});
+        ${resolverHandler}(${GQL__EXECUTION_CONTEXT}, ${resultParentPath}, result, ${parentIndexes});
         ${promiseDone()}
        }, err => {
         if (err) {
@@ -575,13 +575,13 @@ function compileDeferredField(
         ${promiseDone()}
        });
       } else {
-        ${resolverHandler}(${GLOBAL_EXECUTION_CONTEXT}, ${resultParentPath}, __value, ${parentIndexes});
+        ${resolverHandler}(${GQL__EXECUTION_CONTEXT}, ${resultParentPath}, __value, ${parentIndexes});
       }
     }`;
   context.hoistedFunctions.push(`
-    function ${resolverHandler}(${GLOBAL_EXECUTION_CONTEXT}, ${GLOBAL_PARENT_NAME}, ${jsFieldName}, ${parentIndexes}) {
+    function ${resolverHandler}(${GQL__EXECUTION_CONTEXT}, ${GQL__PARENT_NAME}, ${jsFieldName}, ${parentIndexes}) {
       ${generateUniqueDeclarations(subContext)}
-      ${GLOBAL_PARENT_NAME}.${name} = ${nodeBody};
+      ${GQL__PARENT_NAME}.${name} = ${nodeBody};
       ${compileDeferredFields(subContext)}
       ${appendix || ""}
     }
@@ -600,16 +600,16 @@ function compileDeferredFieldsSerially(context: CompilationContext): string {
     );
     body += `
       if (${SAFETY_CHECK_PREFIX}${index}) {
-        ${GLOBAL_EXECUTION_CONTEXT}.queue.push(${mutationHandler});
+        ${GQL__EXECUTION_CONTEXT}.queue.push(${mutationHandler});
       }
     `;
     const appendix = `
-    if (${GLOBAL_PROMISE_COUNTER} === 0) {
-      ${GLOBAL_RESOLVE}(${GLOBAL_EXECUTION_CONTEXT});
+    if (${GQL__PROMISE_COUNTER} === 0) {
+      ${GQL__RESOLVE}(${GQL__EXECUTION_CONTEXT});
     }
     `;
     context.hoistedFunctions.push(`
-      function ${mutationHandler}(${GLOBAL_EXECUTION_CONTEXT}) {
+      function ${mutationHandler}(${GQL__EXECUTION_CONTEXT}) {
         ${compileDeferredField(context, deferredField, appendix)}
       }
       `);
@@ -647,16 +647,16 @@ function compileType(
     const nullErrorStr = `"Cannot return null for non-nullable field ${
       parentType.name
     }.${getFieldNodesName(fieldNodes)}."`;
-    body += `(${GLOBAL_NULL_ERRORS_NAME}.push(${createErrorObject(
+    body += `(${GQL__NULL_ERRORS_NAME}.push(${createErrorObject(
       context,
       fieldNodes,
       previousPath,
       nullErrorStr
     )}), null) :`;
-    errorDestination = GLOBAL_NULL_ERRORS_NAME;
+    errorDestination = GQL__NULL_ERRORS_NAME;
   } else {
     body += "null : ";
-    errorDestination = GLOBAL_ERRORS_NAME;
+    errorDestination = GQL__ERRORS_NAME;
   }
   body += "(";
   // value can be an error obj
@@ -745,7 +745,7 @@ function compileLeafType(
       `${type.name}${originPaths.join("")}SerializerErrorHandler`
     );
     context.hoistedFunctions.push(`
-    function ${serializerErrorHandler}(${GLOBAL_EXECUTION_CONTEXT}, message, ${parentIndexes}) {
+    function ${serializerErrorHandler}(${GQL__EXECUTION_CONTEXT}, message, ${parentIndexes}) {
     ${errorDestination}.push(${createErrorObject(
       context,
       fieldNodes,
@@ -753,7 +753,7 @@ function compileLeafType(
       "message"
     )});}
     `);
-    body += `${GLOBAL_EXECUTION_CONTEXT}.serializers.${serializerName}(${GLOBAL_EXECUTION_CONTEXT}, ${originPaths.join(
+    body += `${GQL__EXECUTION_CONTEXT}.serializers.${serializerName}(${GQL__EXECUTION_CONTEXT}, ${originPaths.join(
       "."
     )}, ${serializerErrorHandler}, ${parentIndexes})`;
   }
@@ -791,7 +791,7 @@ function compileObjectType(
   if (typeof type.isTypeOf === "function" && !alwaysDefer) {
     context.isTypeOfs[type.name + "IsTypeOf"] = type.isTypeOf;
     body(
-      `!${GLOBAL_EXECUTION_CONTEXT}.isTypeOfs["${
+      `!${GQL__EXECUTION_CONTEXT}.isTypeOfs["${
         type.name
       }IsTypeOf"](${originPaths.join(
         "."
@@ -801,7 +801,7 @@ function compileObjectType(
         responsePath as any,
         `\`Expected value of type "${
           type.name
-        }" but got: $\{${GLOBAL_INSPECT_NAME}(${originPaths.join(".")})}.\``
+        }" but got: $\{${GQL__INSPECT_NAME}(${originPaths.join(".")})}.\``
       )}), null) :`
     );
   }
@@ -1014,10 +1014,10 @@ function compileAbstractType(
       return null;
     }
   })(
-    ${GLOBAL_EXECUTION_CONTEXT}.typeResolvers.${typeResolverName}(${originPaths.join(
+    ${GQL__EXECUTION_CONTEXT}.typeResolvers.${typeResolverName}(${originPaths.join(
     "."
   )},
-    ${GLOBAL_CONTEXT_NAME},
+    ${GQL__CONTEXT_NAME},
     ${getExecutionInfo(
       context,
       parentType,
@@ -1060,7 +1060,7 @@ function compileListType(
     fieldType,
     fieldNodes,
     ["__currentItem"],
-    [`${GLOBAL_PARENT_NAME}[idx${newDepth}]`],
+    [`${GQL__PARENT_NAME}[idx${newDepth}]`],
     addPath(responsePath, "idx" + newDepth, "variable")
   );
 
@@ -1089,9 +1089,9 @@ function compileListType(
   );
   const childIndexes = getParentArgIndexes(listContext);
   listContext.hoistedFunctions.push(`
-  function ${itemHandler}(${GLOBAL_EXECUTION_CONTEXT}, ${GLOBAL_PARENT_NAME}, __currentItem, ${childIndexes}) {
+  function ${itemHandler}(${GQL__EXECUTION_CONTEXT}, ${GQL__PARENT_NAME}, __currentItem, ${childIndexes}) {
     ${uniqueDeclarations}
-    ${GLOBAL_PARENT_NAME}[idx${newDepth}] = ${dataBody};
+    ${GQL__PARENT_NAME}[idx${newDepth}] = ${dataBody};
     ${deferredFields}
   }
   `);
@@ -1101,11 +1101,11 @@ function compileListType(
   );
   const parentIndexes = getParentArgIndexes(context);
   listContext.hoistedFunctions.push(`
-  function ${safeMapHandler}(${GLOBAL_EXECUTION_CONTEXT}, __currentItem, idx${newDepth}, resultArray, ${parentIndexes}) {
+  function ${safeMapHandler}(${GQL__EXECUTION_CONTEXT}, __currentItem, idx${newDepth}, resultArray, ${parentIndexes}) {
     if (${isPromiseInliner("__currentItem")}) {
       ${promiseStarted()}
       __currentItem.then(result => {
-        ${itemHandler}(${GLOBAL_EXECUTION_CONTEXT}, resultArray, result, ${childIndexes});
+        ${itemHandler}(${GQL__EXECUTION_CONTEXT}, resultArray, result, ${childIndexes});
         ${promiseDone()}
       }, err => {
         resultArray.push(null);
@@ -1117,12 +1117,12 @@ function compileListType(
         ${promiseDone()}
       });
     } else {
-       ${itemHandler}(${GLOBAL_EXECUTION_CONTEXT}, resultArray, __currentItem, ${childIndexes});
+       ${itemHandler}(${GQL__EXECUTION_CONTEXT}, resultArray, __currentItem, ${childIndexes});
     }
   }
   `);
   return `(typeof ${name} === "string" || typeof ${name}[Symbol.iterator] !== "function") ?  ${errorCase} :
-  ${GLOBAL_SAFE_MAP_NAME}(${GLOBAL_EXECUTION_CONTEXT}, ${name}, ${safeMapHandler}, ${parentIndexes})`;
+  ${GQL__SAFE_MAP_NAME}(${GQL__EXECUTION_CONTEXT}, ${name}, ${safeMapHandler}, ${parentIndexes})`;
 }
 
 /**
@@ -1226,7 +1226,7 @@ function getExecutionInfo(
     },
     context.options.resolverInfoEnricher
   );
-  return `${GLOBAL_EXECUTION_CONTEXT}.resolveInfos.${resolveInfoName}(${GLOBAL_ROOT_NAME}, ${GLOBAL_VARIABLES_NAME}, ${serializeResponsePath(
+  return `${GQL__EXECUTION_CONTEXT}.resolveInfos.${resolveInfoName}(${GQL__ROOT_NAME}, ${GQL__VARIABLES_NAME}, ${serializeResponsePath(
     responsePath
   )})`;
 }
@@ -1282,12 +1282,12 @@ function compileArguments(
   const errorDestination = getErrorDestination(returnType);
   for (const variable of args.missing) {
     const varName = variable.valueNode.name.value;
-    body += `if (Object.prototype.hasOwnProperty.call(${GLOBAL_VARIABLES_NAME}, "${varName}")) {`;
+    body += `if (Object.prototype.hasOwnProperty.call(${GQL__VARIABLES_NAME}, "${varName}")) {`;
     if (variable.argument && isNonNullType(variable.argument.definition.type)) {
       const message = `'Argument "${
         variable.argument.definition.name
       }" of non-null type "${variable.argument.definition.type.toString()}" must not be null.'`;
-      body += `if (${GLOBAL_VARIABLES_NAME}['${
+      body += `if (${GQL__VARIABLES_NAME}['${
         variable.valueNode.name.value
       }'] == null) {
       ${errorDestination}.push(${createErrorObject(
@@ -1300,7 +1300,7 @@ function compileArguments(
       }`;
     }
     body += `
-    ${objectPath(topLevelArg, variable.path)} = ${GLOBAL_VARIABLES_NAME}['${
+    ${objectPath(topLevelArg, variable.path)} = ${GQL__VARIABLES_NAME}['${
       variable.valueNode.name.value
     }'];
     }`;
@@ -1392,7 +1392,7 @@ function serializeResponsePathAsArray(path: ObjectPath) {
 }
 
 function getErrorDestination(type: GraphQLType): string {
-  return isNonNullType(type) ? GLOBAL_NULL_ERRORS_NAME : GLOBAL_ERRORS_NAME;
+  return isNonNullType(type) ? GQL__NULL_ERRORS_NAME : GQL__ERRORS_NAME;
 }
 
 function createResolveInfoName(path: ObjectPath) {
@@ -1624,15 +1624,15 @@ function getSerializerName(name: string) {
 function promiseStarted() {
   return `
      // increase the promise counter
-     ++${GLOBAL_PROMISE_COUNTER};
+     ++${GQL__PROMISE_COUNTER};
   `;
 }
 
 function promiseDone() {
   return `
-    --${GLOBAL_PROMISE_COUNTER};
-    if (${GLOBAL_PROMISE_COUNTER} === 0) {
-      ${GLOBAL_RESOLVE}(${GLOBAL_EXECUTION_CONTEXT});
+    --${GQL__PROMISE_COUNTER};
+    if (${GQL__PROMISE_COUNTER} === 0) {
+      ${GQL__RESOLVE}(${GQL__EXECUTION_CONTEXT});
     }
   `;
 }

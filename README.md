@@ -1,6 +1,8 @@
 # @kingworldjs/graphql-jit
 An **experimental** plugin for [kingworld](https://github.com/saltyaom/kingworld) that adds support for using GraphQL JIT.
 
+### EXPERIMENTAL: DO NOT USE
+
 ## Installation
 ```bash
 bun add graphql @kingworldjs/graphql-jit
