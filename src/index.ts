@@ -10,6 +10,8 @@ import {
     makeExecutableSchema,
     type IExecutableSchemaDefinition
 } from '@graphql-tools/schema'
+import { GRAPHIQL } from './constants'
+import KingWorldError from 'kingworld/src/error'
 
 // https://stackoverflow.com/a/52171480
 const tsh = (s: string) => {
@@ -27,7 +29,8 @@ export const graphql = (
     {
         path = '/graphql',
         schema,
-        resolvers
+        resolvers,
+        playground = true
     }: {
         /**
          * @default /graphql
@@ -47,10 +50,15 @@ export const graphql = (
             Mutation?: Record<string, Function | Promise<Function>>
             Subscription?: Record<string, Function | Promise<Function>>
         }
+        /**
+         * Playground
+         */
+        playground?: boolean
     } = {
         path: 'graphql',
         schema: '',
-        resolvers: {}
+        resolvers: {},
+        playground: true
     }
 ) => {
     const gqlSchema = makeExecutableSchema({
@@ -60,26 +68,36 @@ export const graphql = (
 
     const cache: Map<number, CompiledQuery<any>['query']> = new Map()
 
-    return app.post(path, ((context) => {
-        if (!context.body?.query) return
+    return app
+        .get(path, () => {
+            if (!playground) throw new KingWorldError('NOT_FOUND')
 
-        const hash = tsh(context.body.query)
-        if (cache.get(hash))
-            return cache.get(hash)!({}, {}, context.body.variables)
+            return new Response(GRAPHIQL, {
+                headers: {
+                    'content-type': 'text/html'
+                }
+            })
+        })
+        .post(path, ((context) => {
+            if (!context.body?.query) return
 
-        const compiled = compileQuery(
-            gqlSchema,
-            parse(context.body.query),
-            context.body.operationName
-        )
-        if (isCompiledQuery(compiled)) {
-            cache.set(hash, compiled.query)
+            const hash = tsh(context.body.query)
+            if (cache.get(hash))
+                return cache.get(hash)!({}, {}, context.body.variables)
 
-            return compiled.query({}, {}, context.body.variables)
-        }
+            const compiled = compileQuery(
+                gqlSchema,
+                parse(context.body.query),
+                context.body.operationName
+            )
+            if (isCompiledQuery(compiled)) {
+                cache.set(hash, compiled.query)
 
-        return compiled
-    }) as (context: any) => any)
+                return compiled.query({}, {}, context.body.variables)
+            }
+
+            return compiled
+        }) as (context: any) => any)
 }
 
 export default graphql
